@@ -290,7 +290,7 @@ proc parseHook*[T](s: string, i: var int, v: var seq[T]) =
     eatSpace(s, i)
     if i < s.len and s[i] == ']':
       break
-    var element: T
+    var element: T = default(T)
     parseHook(s, i, element)
     v.add(element)
     eatSpace(s, i)
