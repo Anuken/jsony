@@ -1,5 +1,5 @@
 import jsony/objvar, std/json, std/options, std/parseutils, std/sets,
-    std/strutils, std/tables, std/typetraits, std/unicode
+    std/strutils, std/tables, std/typetraits, std/unicode, std/macros
 
 type JsonError* = object of ValueError
 
@@ -14,6 +14,8 @@ type
   SomeTable*[K, V] = Table[K, V] | OrderedTable[K, V] |
     TableRef[K, V] | OrderedTableRef[K, V]
   RawJson* = distinct string
+
+template jsonSkip* {.pragma.}
 
 proc parseHook*[T](s: string, i: var int, v: var seq[T])
 proc parseHook*[T: enum](s: string, i: var int, v: var T)
@@ -384,11 +386,12 @@ proc parseObjectInner[T](s: string, i: var int, v: var T) =
       renameHook(v, key)
     block all:
       for k, v in v.fieldPairs:
-        if k == key or snakeCase(k) == key:
-          var v2: type(v)
-          parseHook(s, i, v2)
-          v = v2
-          break all
+        when not v.hasCustomPragma(jsonSkip):
+          if k == key or snakeCase(k) == key:
+            var v2: type(v)
+            parseHook(s, i, v2)
+            v = v2
+            break all
       skipValue(s, i)
     eatSpace(s, i)
     if i < s.len and s[i] == ',':
@@ -819,21 +822,22 @@ proc dumpHook*(s: var string, v: object) =
   else:
     # Normal objects.
     for k, e in v.fieldPairs:
-      when compiles(skipHook(type(v), k)):
-        when skipHook(type(v), k):
-          discard
+      when not e.hasCustomPragma(jsonSkip):
+        when compiles(skipHook(type(v), k)):
+          when skipHook(type(v), k):
+            discard
+          else:
+            if i > 0:
+              s.add ','
+            s.dumpKey(k)
+            s.dumpHook(e)
+            inc i
         else:
           if i > 0:
             s.add ','
           s.dumpKey(k)
           s.dumpHook(e)
           inc i
-      else:
-        if i > 0:
-          s.add ','
-        s.dumpKey(k)
-        s.dumpHook(e)
-        inc i
   s.add '}'
 
 proc dumpHook*[N, T](s: var string, v: array[N, t[T]]) =
