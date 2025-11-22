@@ -16,6 +16,31 @@ when NimMajor >= 2: # Default field values are only supported in Nim 2.0+
     var f = s.fromJson(Frog)
     # Make sure the default value is deserialized correctly.
     doAssert f.legs == 4
+  
+  block:
+    type Frog = object
+      legs: int = 4
+
+    var s = "[{}, {}]"
+    var f = s.fromJson(seq[Frog])
+    # Make sure the default value in seq is deserialized correctly.
+    doAssert f[0].legs == 4
+    doAssert f[1].legs == 4
+  
+  block:
+    type Legs = object
+      count: int = 4
+
+    type Frog = object
+      legs = Legs()
+      eyes: int = 2
+      
+    var s = "{}"
+    var f = s.fromJson(Frog)
+    # Make sure the default value is deserialized correctly.
+    doAssert f.legs.count == 4
+    doAssert f.eyes == 2
+  
 
 block:
   type Foo2 = ref object

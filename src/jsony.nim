@@ -290,7 +290,7 @@ proc parseHook*[T](s: string, i: var int, v: var seq[T]) =
     eatSpace(s, i)
     if i < s.len and s[i] == ']':
       break
-    var element: T = default(T)
+    var element: T
     parseHook(s, i, element)
     v.add(element)
     eatSpace(s, i)
@@ -453,6 +453,8 @@ proc parseHook*[T: object|ref object](s: string, i: var int, v: var T) =
       newHook(v)
     elif compiles(new(v)):
       new(v)
+    else:
+      v = default(typeof(v))
   else:
     # Try looking for the discriminatorFieldName, then parse as normal object.
     eatSpace(s, i)
@@ -478,6 +480,8 @@ proc parseHook*[T: object|ref object](s: string, i: var int, v: var T) =
           newHook(v)
         elif compiles(new(v)):
           new(v)
+        else:
+          v = default(typeof(v))
         break
     i = saveI
   parseObjectInner(s, i, v)
